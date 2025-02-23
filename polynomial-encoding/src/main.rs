@@ -26,7 +26,7 @@ impl Polynomial {
         let bytes = message.as_bytes();
         let mut coefficients = Vec::new();
 
-        for (i, bytes) in bytes.iter().enumerate() {
+        for (_i, bytes) in bytes.iter().enumerate() {
             coefficients.push(*bytes as f64);
         }
 
@@ -34,13 +34,34 @@ impl Polynomial {
             coefficients
         }
     }
+    fn lagrange(&self, x:f64) -> f64 {
+        let mut result = 0.0;
+
+        for (i, coefficient) in self.coefficients.iter().enumerate() {
+            let mut term = *coefficient;
+            for (j, other_coefficient) in self.coefficients.iter().enumerate() {
+                if i != j {
+                    term *= (x - *other_coefficient as f64) / (*coefficient as f64 - *other_coefficient as f64);
+                }
+            }
+
+            result += term;
+        }
+
+        result
+    }
 }
 
 fn main() {
     let message = "Hello, World!";
 
-    let mut poly = Polynomial::from_message(message);
+    let poly = Polynomial::from_message(message);
 
-    println!("{}", poly);
+    let x = 2.0;
+    let result = poly.lagrange(x);
+
+    println!("Lagrange Interpolation at x = {}: {} for {}", x, result, poly);
+
+    // println!("{}", poly);
 
 }
