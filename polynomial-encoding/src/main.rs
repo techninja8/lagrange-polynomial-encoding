@@ -1,67 +1,35 @@
-use std::fmt;
+#[allow(dead_code)]
+#[allow(unused_variables)]
 
-struct Polynomial {
-    coefficients: Vec<f64>
-}
+#[derive(Clone, Debug, Copy, ParitalEq, Eq)]
+struct GF256(u8);
 
-impl fmt::Display for Polynomial {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Polynomial: ")?;
+impl GF256 {
+    const IRREDUCIBLE: u8 = 0x1B; // This is AES Standard
 
-        let polynomial = &self.coefficients;
-
-        for (i, coefficient) in polynomial.iter().enumerate() {
-            if i > 0 {
-                write!(f, " + ")?;
-            }
-            write!(f, "{}x^{}", coefficient, i)?;
-        }
-
-        Ok(())
+    // Addition and Subtraction is pretty much the same here
+    fn add(&self, other: GF256) -> GF256{
+        GF256(self.0 ^ other.0)
     }
-}
 
-impl Polynomial {
-    fn from_message(message: &str) -> Self {
-        let bytes = message.as_bytes();
-        let mut coefficients = Vec::new();
+    // We'll implement the Russian Peasant Algorithm
+    fn mul(&self, other: GF256) {
+        let mut a = self.0;
+        let mut b = other.0;
+        let mut result = 0u8;
 
-        for (_i, bytes) in bytes.iter().enumerate() {
-            coefficients.push(*bytes as f64);
-        }
-
-        Self {
-            coefficients
-        }
-    }
-    fn lagrange(&self, x:f64) -> f64 {
-        let mut result = 0.0;
-
-        for (i, coefficient) in self.coefficients.iter().enumerate() {
-            let mut term = *coefficient;
-            for (j, other_coefficient) in self.coefficients.iter().enumerate() {
-                if i != j {
-                    term *= (x - *other_coefficient as f64) / (*coefficient as f64 - *other_coefficient as f64);
-                }
+        while b > 0 {
+            if b & 1 != 0 {
+                result ^= a;
             }
-
-            result += term;
+            let carry = a & 0x80;
+            a <<= 1; // Multiply by 1
         }
 
-        result
+        GF256(result)
     }
 }
 
 fn main() {
-    let message = "Hello, World!";
-
-    let poly = Polynomial::from_message(message);
-
-    let x = 2.0;
-    let result = poly.lagrange(x);
-
-    println!("Lagrange Interpolation at x = {}: {} for {}", x, result, poly);
-
-    // println!("{}", poly);
 
 }
