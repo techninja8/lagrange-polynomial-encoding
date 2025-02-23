@@ -9,6 +9,33 @@ mod gf256;
 use crate::polynomial::Polynomial;
 use crate::gf256::GF256;
 // use crate::gf256::*;
+use std::io;
+
+
+fn main() {
+    let mut input = String::new();
+
+    println!("Enter two hex values (e.g. 57 83): ");
+    io::stdin().read_line(&mut input).unwrap();
+
+    let nums: Vec<u8> = input.trim()
+        .split_whitespace()
+        .filter_map(|s| u8::from_str_radix(s, 16).ok())
+        .collect();
+
+    if nums.len() == 2 {
+        let a = GF256(nums[0]);
+        let b = GF256(nums[1]);
+
+        println!("Addition: {}", a.add(b));
+        println!("Multiplication: {}", a.mul(b));
+        println!("Inverse of first number: {}", a.inverse());
+    } else {
+        println!("Invalid Input!");
+    }
+}
+
+/*
 
 fn main() {
     // Test Polynomial and GF256 module
@@ -48,4 +75,4 @@ fn main() {
     
     
 
-}
+}*/
