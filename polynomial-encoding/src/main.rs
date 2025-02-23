@@ -3,7 +3,8 @@
 #[allow(unused_mut)]
 
 use std::fmt;
-use std::result;
+//use std::result;
+use::std::ops::Neg;
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 struct GF256(u8);
@@ -84,6 +85,13 @@ impl fmt::Display for GF256 {
     }
 }
 
+impl Neg for GF256 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        self // Negation is simply the value itself so, yh, nothing happens here
+    }
+}
+
 impl Polynomial {
     fn new(coeffs: Vec<GF256>) -> Self {
         Self { coeffs }
@@ -123,6 +131,43 @@ impl Polynomial {
 
         Polynomial::new(result)
     }
+
+    fn scalar_mul(&self, scalar: GF256) -> Polynomial {
+        Polynomial::new(self.coeffs.iter()
+            .map(|&c| c.mul(scalar)).collect())
+    }
+    // We compute the lagrange basis polynomial l_i(x) in GF(256)
+    fn lagrange_basis(i: usize, xs: &[GF256]) -> Polynomial {
+        let mut numer = Polynomial::new(vec![GF256(1)]);
+        let mut denom = GF256(1);
+
+        for (j, &xj) in xs.iter().enumerate() {
+            if i != j {
+                let term = Polynomial::new(vec![xj.neg(), GF256(1)]); // basc=ically means (x - xj) on top
+                numer = numer.mul(&term);
+                denom = denom.mul(xs[i].add(xj)); // this should mean x_i - x_j (in GF(256), addition and subtraction are treated with the same XOR)
+            }
+        }
+
+        // Multiply by the multiplcative inverse of the denominator
+        numer.scalar_mul(denom.inverse())
+    }
+
+    // We'll perform the lagrange interpolation to find P(x) that passes through given points (our encoded message in this case)
+    fn lagrange_interpolation(xs: &[GF256], ys: &[GF256]) -> Polynomial {
+        assert_eq!(xs.len(), ys.len(), "Mismatch between x and y values");
+
+        let mut result = Polynomial::new(vec![GF256(0)]);
+
+        for i in 0..xs.len() {
+            let li = Polynomial::lagrange_basis(i, xs);
+            let term = li.scalar_mul(ys[i]);
+            result = result.add(&term);
+        }
+
+        result
+
+    }
     
 }
 
@@ -161,5 +206,17 @@ fn main() {
     println!("p1 + p2 = {}", p1.add(&p2));
     println!("p1 * p2 = {}", p1.mul(&p2));
     println!("p1(2) = {}", p1.evaluate(GF256(2)));
+
+    let xs = vec![GF256(1), GF256(2), GF256(3)];
+    let ys = vec![GF256(5), GF256(9), GF256(17)];
+
+    let poly = Polynomial::lagrange_interpolation(&xs, &ys);
+    println!("Interpolation Polynomials: {}", poly);
+
+    for i in 0..xs.len() {
+        assert_eq!(poly.evaluate(xs[i]), ys[i]);
+    }
+
+    println!("Interpolation Verified!");
 
 }
